@@ -53,14 +53,13 @@ public class BeaconService extends Service {
 
         Beacon beacon = new Beacon.Builder()
                 .setId1(identifier.toString())
-                .setId2("1")
                 .setManufacturer(0x00E0)
-                .setTxPower(6)
+                .setTxPower(10)
                 .setDataFields(Arrays.asList(new Long[] {0l})) // Remove this for beacon layouts without d: fields
                 .build();
 
         BeaconParser beaconParser = new BeaconParser().
-                setBeaconLayout(BeaconParser.EDDYSTONE_UID_LAYOUT);
+                setBeaconLayout(BeaconParser.EDDYSTONE_URL_LAYOUT);
         BeaconTransmitter beaconTransmitter = new BeaconTransmitter(
                 getApplicationContext(), beaconParser);
         beaconTransmitter.startAdvertising(beacon, new AdvertiseCallback() {
