@@ -1,5 +1,6 @@
 package uk.hackeurope.wrekin;
 
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
@@ -31,7 +32,20 @@ public abstract class AppCompatPreferenceActivity extends PreferenceActivity {
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
         getDelegate().onPostCreate(savedInstanceState);
+        startService(new Intent(getBaseContext(), BeaconService.class));
+
     }
+
+    // Method to start the service
+    public void startService(View view) {
+        startService(new Intent(getBaseContext(), BeaconService.class));
+    }
+
+    // Method to stop the service
+    public void stopService(View view) {
+        stopService(new Intent(getBaseContext(), BeaconService.class));
+    }
+
 
     public ActionBar getSupportActionBar() {
         return getDelegate().getSupportActionBar();
