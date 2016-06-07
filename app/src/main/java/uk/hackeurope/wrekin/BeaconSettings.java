@@ -4,6 +4,7 @@ package uk.hackeurope.wrekin;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -38,6 +39,7 @@ public class BeaconSettings extends AppCompatPreferenceActivity {
      * A preference value change listener that updates the preference's summary
      * to reflect its new value.
      */
+
     private static Preference.OnPreferenceChangeListener sBindPreferenceSummaryToValueListener = new Preference.OnPreferenceChangeListener() {
         @Override
         public boolean onPreferenceChange(Preference preference, Object value) {
@@ -60,6 +62,7 @@ public class BeaconSettings extends AppCompatPreferenceActivity {
                 // simple string representation.
                 preference.setSummary(stringValue);
             }
+
             return true;
         }
     };
@@ -153,6 +156,8 @@ public class BeaconSettings extends AppCompatPreferenceActivity {
         @Override
         public boolean onOptionsItemSelected(MenuItem item) {
             int id = item.getItemId();
+            // Method to start the service
+
             if (id == android.R.id.home) {
                 startActivity(new Intent(getActivity(), BeaconSettings.class));
                 return true;
@@ -160,5 +165,6 @@ public class BeaconSettings extends AppCompatPreferenceActivity {
             return super.onOptionsItemSelected(item);
         }
     }
+
 
 }

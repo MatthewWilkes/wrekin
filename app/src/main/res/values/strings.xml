@@ -2,13 +2,15 @@
     <string name="app_name">Mobile Campaigner</string>
 
     <array name="power_levels_human">
+        <item>Off</item>
         <item>Low</item>
         <item>Medium</item>
         <item>High</item>
     </array>
 
     <array name="power_levels_key">
-        <item>performance</item>
+        <item>disabled</item>
+        <item>power</item>
         <item>balanced</item>
         <item>latency</item>
     </array>

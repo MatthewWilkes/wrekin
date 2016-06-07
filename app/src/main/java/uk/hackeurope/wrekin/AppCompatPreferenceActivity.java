@@ -1,9 +1,12 @@
 package uk.hackeurope.wrekin;
 
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceManager;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.Nullable;
 import android.support.v7.app.ActionBar;
@@ -17,7 +20,7 @@ import android.view.ViewGroup;
  * A {@link android.preference.PreferenceActivity} which implements and proxies the necessary calls
  * to be used with AppCompat.
  */
-public abstract class AppCompatPreferenceActivity extends PreferenceActivity {
+public abstract class AppCompatPreferenceActivity extends PreferenceActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private AppCompatDelegate mDelegate;
 
@@ -25,6 +28,12 @@ public abstract class AppCompatPreferenceActivity extends PreferenceActivity {
     protected void onCreate(Bundle savedInstanceState) {
         getDelegate().installViewFactory();
         getDelegate().onCreate(savedInstanceState);
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = getBaseContext().registerReceiver(new BatteryStatusReceiver(), ifilter);
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        pref.registerOnSharedPreferenceChangeListener(this);
+
         super.onCreate(savedInstanceState);
     }
 
@@ -34,16 +43,6 @@ public abstract class AppCompatPreferenceActivity extends PreferenceActivity {
         getDelegate().onPostCreate(savedInstanceState);
         startService(new Intent(getBaseContext(), BeaconService.class));
 
-    }
-
-    // Method to start the service
-    public void startService(View view) {
-        startService(new Intent(getBaseContext(), BeaconService.class));
-    }
-
-    // Method to stop the service
-    public void stopService(View view) {
-        stopService(new Intent(getBaseContext(), BeaconService.class));
     }
 
 
@@ -96,6 +95,7 @@ public abstract class AppCompatPreferenceActivity extends PreferenceActivity {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         getDelegate().onConfigurationChanged(newConfig);
+
     }
 
     @Override
@@ -105,7 +105,15 @@ public abstract class AppCompatPreferenceActivity extends PreferenceActivity {
     }
 
     @Override
+    public void onSharedPreferenceChanged(SharedPreferences preferences, String key) {
+        stopService(new Intent(getBaseContext(), BeaconService.class));
+        startService(new Intent(getBaseContext(), BeaconService.class));
+    }
+
+    @Override
     protected void onDestroy() {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        pref.unregisterOnSharedPreferenceChangeListener(this);
         super.onDestroy();
         getDelegate().onDestroy();
     }
