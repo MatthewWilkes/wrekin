@@ -1,6 +1,5 @@
 package uk.hackeurope.wrekin;
 
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
@@ -12,28 +11,17 @@ import android.content.SharedPreferences;
 import android.os.BatteryManager;
 import android.os.Binder;
 import android.os.IBinder;
-import android.os.RemoteException;
 import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
 
 import org.altbeacon.beacon.Beacon;
-import org.altbeacon.beacon.BeaconConsumer;
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
 import org.altbeacon.beacon.BeaconTransmitter;
 import org.altbeacon.beacon.Identifier;
-import org.altbeacon.beacon.RangeNotifier;
-import org.altbeacon.beacon.Region;
 import org.altbeacon.beacon.utils.UrlBeaconUrlCompressor;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.util.Arrays;
-import java.util.Collection;
 
 
 public class BeaconService extends Service {
