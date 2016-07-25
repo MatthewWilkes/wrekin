@@ -9,13 +9,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.BatteryManager;
-import android.os.Binder;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import org.altbeacon.beacon.Beacon;
-import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
 import org.altbeacon.beacon.BeaconTransmitter;
 import org.altbeacon.beacon.Identifier;
@@ -26,65 +25,72 @@ import java.net.MalformedURLException;
 
 public class BeaconService extends Service {
     protected static final String TAG = "BeaconService";
-    private BeaconManager beaconManager;
+    private static final String TEST_URL = "https://goo.gl/L3kw4Q";
+    private static final int NOTIFICATION_ID = 1;
 
-    public class LocalBinder extends Binder {
-        BeaconService getService() {
-            return BeaconService.this;
-        }
+    private BeaconTransmitter mBeaconTransmitter;
+    private Beacon mBeacon;
+
+    private void sendNotificaion() {
+        NotificationManager nMN = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        Notification n  = new Notification.Builder(this)
+                .setContentTitle("Mobile Campaigner")
+                .setContentText("Currently campaigning")
+                .setSmallIcon(R.drawable.ic_info_black_24dp)
+                .build();
+
+        n.contentView.setImageViewResource(android.R.id.icon, R.mipmap.ic_launcher);
+        n.flags |= Notification.FLAG_NO_CLEAR;
+
+        nMN.notify(NOTIFICATION_ID, n);
     }
-    private final IBinder mBinder = new LocalBinder();
 
-    @Override
-    public IBinder onBind(Intent intent) {
-        return mBinder;
+    private void cancelNotification() {
+        NotificationManager nMN = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        nMN.cancel(NOTIFICATION_ID);
     }
 
     @Override
     public void onCreate() {
+        if (mBeaconTransmitter != null) {
+            return;
+        }
+
         byte[] urlBytes;
-        Log.i(TAG, "STARTING UP");
+        Log.d(TAG, "service created");
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        NotificationManager nMN = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            Notification n  = new Notification.Builder(this)
-                    .setContentTitle("Mobile Campaigner")
-                    .setContentText("Currently campaigning")
-                    .setSmallIcon(R.drawable.ic_info_black_24dp)
-                    .build();
-        n.contentView.setImageViewResource(android.R.id.icon, R.mipmap.ic_launcher);
-        n.flags |= Notification.FLAG_NO_CLEAR;
-        nMN.notify(1, n);
-
         Identifier identifier;
         try {
-            urlBytes = UrlBeaconUrlCompressor.compress("https://goo.gl/L3kw4Q");
+            urlBytes = UrlBeaconUrlCompressor.compress(TEST_URL);
             identifier = Identifier.fromBytes(urlBytes, 0, urlBytes.length, false);
-            Log.i(TAG, "Compressed:");
+            Log.d(TAG, "Compressed: " + TEST_URL);
         } catch (MalformedURLException exc) {
             Log.e(TAG, exc.toString());
             return;
         }
 
-        Beacon beacon = new Beacon.Builder()
+        mBeacon = new Beacon.Builder()
                 .setId1(identifier.toString())
                 .setTxPower(-55)
                 .build();
 
         BeaconParser beaconParser = new BeaconParser().
                 setBeaconLayout(BeaconParser.EDDYSTONE_URL_LAYOUT);
-        BeaconTransmitter beaconTransmitter = new BeaconTransmitter(
+        mBeaconTransmitter = new BeaconTransmitter(
                 getApplicationContext(), beaconParser);
 
         String power_setting = prefs.getString("beacon_power", "balanced");
-        if (power_setting.equals("latency")) beaconTransmitter.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY);
-        if (power_setting.equals("balanced")) beaconTransmitter.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED);
-        if (power_setting.equals("power")) beaconTransmitter.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER);
-        beaconTransmitter.setAdvertiseTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH);
+        if (power_setting.equals("latency")) mBeaconTransmitter.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY);
+        if (power_setting.equals("balanced")) mBeaconTransmitter.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED);
+        if (power_setting.equals("power")) mBeaconTransmitter.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER);
+        mBeaconTransmitter.setAdvertiseTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH);
+
+        sendNotificaion();
 
         if (power_setting.equals("disabled")) {
-            nMN.cancel(1);
+            cancelNotification();
             return;
         }
 
@@ -95,27 +101,38 @@ public class BeaconService extends Service {
                 status == BatteryManager.BATTERY_STATUS_FULL;
 
         if (prefs.getBoolean("switch_power", true) && isCharging) {
-            nMN.cancel(1);
-            return;
+            cancelNotification();
         }
-
-        beaconTransmitter.startAdvertising(beacon, new AdvertiseCallback() {
-            @Override
-            public void onStartFailure(int errorCode) {
-                Log.e(TAG, "Advertisement start failed with code: "+errorCode); }
-            @Override
-            public void onStartSuccess(AdvertiseSettings settingsInEffect) {
-                Log.i(TAG, "Advertisement start succeeded."); }
-        });
-
-
     }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
-        NotificationManager nMN = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        nMN.cancel(1);
+        mBeaconTransmitter.stopAdvertising();
+        cancelNotification();
     }
 
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (!mBeaconTransmitter.isStarted()) {
+            mBeaconTransmitter.startAdvertising(mBeacon, new AdvertiseCallback() {
+                @Override
+                public void onStartFailure(int errorCode) {
+                    Log.e(TAG, "Advertisement start failed with code: "+errorCode); }
+                @Override
+                public void onStartSuccess(AdvertiseSettings settingsInEffect) {
+                    Log.i(TAG, "Advertisement start succeeded."); }
+            });
+        } else {
+            Log.d(TAG, "start called for already running BTLE advertiser");
+        }
+
+        return START_STICKY;
+    }
 }
